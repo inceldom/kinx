@@ -1,0 +1,95 @@
+---------------------------------------------------------------------------------------------------
+
+-- Main TOH Script - Kinx Hub
+-- I will comment some parts so that you understand how each bit works
+
+local UILib = loadstring(game:HttpGet('https://raw.githubusercontent.com/inceldom/kinx/main/ui'))()
+
+local win = UILib:Window("KINX HUB",Color3.fromRGB(44, 120, 224), Enum.KeyCode.RightControl)
+
+local MainSection = win:Tab("Main")
+
+---------------------------------------------------------------------------------------------------
+
+-- Main
+-- Add page
+
+local infjumpenabled = false
+local godmodeenabled = false
+
+game:GetService("UserInputService").JumpRequest:Connect(function()
+	if infjumpenabled then
+		game:GetService("Players").LocalPlayer.Character.Humanoid:ChangeState("Jumping")
+	end
+end)
+
+-- This section disables the games anticheat. The devs are actually retarded. They have one function that
+-- kicks a player. I simply hooked kick namecall and removed anticheat script
+
+local gm = getrawmetatable(game)
+setreadonly(gm, false)
+local OldNameCall = gm.__namecall
+local OldIndex = gm.__index
+local oldspeed, oldjump = game:GetService("Players").LocalPlayer.Character.Humanoid.WalkSpeed, game:GetService("Players").LocalPlayer.Character.Humanoid.JumpPower
+gm.__namecall = newcclosure(function(self, ...)
+    local args = {...}
+    if getnamecallmethod() == "Kick" and self == game.Players.LocalPlayer then print("Fuck no nigga")
+    elseif args[1] == "kills" and getnamecallmethod() == "FindFirstChild" and godmodeenabled then return false
+    else return OldNameCall(self, ...) end
+end)
+gm.__index = newcclosure(function(self, key)
+    if key == "WalkSpeed" and self == game.Players.LocalPlayer.Character.Humanoid then
+        return oldspeed;
+    elseif key == "JumpPower" and self == game.Players.LocalPlayer.Character.Humanoid then
+        return oldjump;
+    else
+        return OldIndex(self, key)
+    end
+end)
+setreadonly(gm, true)
+game.Players.LocalPlayer.PlayerScripts.LocalScript:Destroy()
+
+-- Enables/Disables inf jump. Essentially its the main toggle.
+
+MainSection:Toggle("Infinite Jump",false, function(t)
+	infjumpenabled = t
+end)
+
+MainSection:Toggle("God Mode",false, function(t)
+	godmodeenabled = t
+end)
+
+MainSection:Button("Give All Tools", function()
+	for i,v in pairs(game:GetService("ReplicatedStorage").Gear:GetChildren()) do
+		local tool = v:Clone()
+		tool.Parent = game.Players.LocalPlayer.Backpack
+	end	
+	UILib:Notification("Notification", "Added All Tools", "Okay!")
+end)
+
+MainSection:Button("Win", function()
+	game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = workspace.tower.finishes:FindFirstChild("Finish").CFrame
+	UILib:Notification("Notification", "Teleported To Top", "Okay!")
+end)
+
+MainSection:Slider("WalkSpeed",0,1000,30, function(t)
+	game:GetService("Players").LocalPlayer.Character.Humanoid.WalkSpeed = t
+end)
+
+MainSection:Slider("Jump Power",0,1000,30, function(t)
+	game:GetService("Players").LocalPlayer.Character.Humanoid.JumpPower = t
+end)
+
+---------------------------------------------------------------------------------------------------
+
+-- Other Func
+-- Add UI
+local Settings = win:Tab("Settings")
+
+
+Settings:Label("UI Toggle Key:  Right-Ctrl")
+
+Settings:Button("Copy Discord Invite", function()
+    setclipboard("https://discord.gg/psu")
+    UILib:Notification("Notification", "Copied!", "Okay")
+end)
