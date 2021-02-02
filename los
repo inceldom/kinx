@@ -1,0 +1,155 @@
+-----------------------------------------------------------------------------------
+
+local UILib = loadstring(game:HttpGet('https://raw.githubusercontent.com/inceldom/kinx/main/ui'))()
+
+local win = UILib:Window("KINX HUB",Color3.fromRGB(44, 120, 224), Enum.KeyCode.RightControl)
+
+local LocalSection = win:Tab("Local")
+
+LocalSection:Slider("WalkSpeed",0,1000,30, function(t)
+	game:GetService("Players").LocalPlayer.Character.Humanoid.WalkSpeed = t
+end)
+
+LocalSection:Slider("Jump Power",0,1000,30, function(t)
+	game:GetService("Players").LocalPlayer.Character.Humanoid.JumpPower = t
+end)
+
+local infjumpenabled = false
+
+game:GetService("UserInputService").JumpRequest:Connect(function()
+	if infjumpenabled then
+		game:GetService("Players").LocalPlayer.Character.Humanoid:ChangeState("Jumping")
+	end
+end)
+
+LocalSection:Toggle("Infinite Jump",false, function(t)
+	infjumpenabled = t
+end)
+
+local AutoFarmSection = win:Tab("Auto-Farm")
+
+AutoFarmSection:Toggle("Orbs-Farm",false, function(t)
+    if t then
+        local plr = game.Players.LocalPlayer
+        local orbEvent = game.ReplicatedStorage.rEvents.orbEvent
+
+        --[[
+        Red Orb
+        Orange Orb
+        Blue Orb
+        Gem
+        ]]
+    
+        game.RunService.RenderStepped:Connect(function()
+            for i=1,500 do
+                orbEvent:FireServer('collectOrb','Red Orb','City')
+                orbEvent:FireServer('collectOrb','Yellow Orb','City')
+            end
+        end)
+    end
+end)
+
+
+AutoFarmSection:Toggle("Rebirth-Farm",false, function(t)
+    if t then
+        local plr = game.Players.LocalPlayer
+        local orbEvent = game.ReplicatedStorage.rEvents.orbEvent
+        
+        local function checkMax()
+            if plr.level.Value == 50+((plr.leaderstats.Rebirths.Value)*25)then
+                return true else 
+            end
+        end
+        
+        game.RunService.RenderStepped:Connect(function()
+            if not checkMax()then
+                for i=1,100 do
+                    orbEvent:FireServer('collectOrb','Red Orb','City')
+                end
+            else
+                game.ReplicatedStorage.rEvents.rebirthEvent:FireServer('rebirthRequest')
+            end
+        end)
+        
+        game.ReplicatedStorage.rEvents.rebirthEvent:FireServer('rebirthRequest')
+    end
+end)
+
+AutoFarmSection:Toggle("GemFarm",false, function(t)
+    if t then
+        game.RunService.RenderStepped:Connect(function()
+            for i=1,100 do
+                getgenv().gemfarm = true
+        
+                game.RunService.RenderStepped:Connect(function()
+                    if getgenv().gemfarm == true then
+                        for i=1,5 do
+                        local args = {
+                            [1] = "collectOrb",
+                            [2] = "Gem",
+                            [3] = "City"
+                        }
+        
+                        game:GetService("ReplicatedStorage").rEvents.orbEvent:FireServer(unpack(args))
+                        end
+                    else
+                        print("off")
+                    end
+                end)
+            end
+        end)
+    end
+end)
+
+AutoFarmSection:Toggle("HoopFarm",false, function(t)
+    if t then
+        getgenv().hoopfarm = true
+    else
+        getgenv().hoopfarm = false
+    end
+end)
+
+AutoFarmSection:Toggle("AutoRace",false, function(t)
+    if t then
+        getgenv().auotrace = true
+    else
+        getgenv().auotrace = false
+    end
+end)
+
+
+
+while wait() do
+    if getgenv().hoopfarm == true then
+        for i,v in pairs(game:GetService("Workspace").Hoops:GetChildren()) do
+            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.CFrame
+            v:Destroy()
+        end
+    end
+    if getgenv().auotrace == true then
+        local args = {
+            [1] = "joinRace"
+        }
+
+        game:GetService("ReplicatedStorage").rEvents.raceEvent:FireServer(unpack(args))
+        
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(1643.49658, 0.841558218, -5956.87891)
+        wait()
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(5.46812057, 0.841558456, -8668.53125)
+        wait()
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(958.442627, 0.841558456, -10988.0732)
+        wait()
+    end
+end
+---------------------------------------------------------------------------------------------------
+
+-- Other Func
+-- Add UI
+local Settings = win:Tab("Settings")
+
+Settings:Label("UI Toggle Key:  Right-Ctrl")
+
+Settings:Button("Copy Discord Invite", function()
+    setclipboard("https://discord.gg/psu")
+    UILib:Notification("Notification", "Copied!", "Okay")
+end)
