@@ -1,0 +1,289 @@
+----------------------------------------------------------------------
+
+-- Phantom Script
+
+local UILib = loadstring(game:HttpGet('https://raw.githubusercontent.com/inceldom/kinx/main/ui'))()
+
+local win = UILib:Window("KINX HUB",Color3.fromRGB(44, 120, 224), Enum.KeyCode.RightControl)
+
+
+----------------------------------------------------------------------
+
+-- Initialize Sections
+
+local AimbotSection = win:Tab("Aimbot")
+local ESPSection = win:Tab("ESP")
+
+----------------------------------------------------------------------
+
+--Variables.
+local UserInputService = game:GetService("UserInputService")
+local Camera = game:GetService('Workspace').Camera
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = game:GetService("Players").LocalPlayer:GetMouse()
+local IsKeyDown = false
+
+Settings = {
+    Enable = false,
+    TeamCheck = true,
+    Smooth = 5,
+    FOV = 5,
+    WallCheck = false,
+    BulletDrop = 149,
+    TriggerKey = Enum.UserInputType.MouseButton2,
+    BP = 2.7
+}
+
+AimbotSection:Toggle("Enabled",false, function(t)
+    Settings.Enable = t
+end)
+
+AimbotSection:Toggle("WallCheck",false, function(t)
+    Settings.WallCheck = t
+end)
+
+AimbotSection:Toggle("Team Check",false, function(t)
+    Settings.TeamCheck = t
+end)
+
+AimbotSection:Slider("FOV",1,100,50, function(t)
+    Settings.FOV = t/10
+end)
+
+function isVisible(character)
+    local Ray = Ray.new(Camera.CFrame.p, (character.Head.Position - Camera.CFrame.p).unit * 2048)
+    local part = workspace:FindPartOnRayWithIgnoreList(Ray, {})
+    if part:IsDescendantOf(character) then return true else return false end
+end
+
+function Calculate(distance)
+    return (1.01*math.pow(distance,4)+0.002*math.pow(distance,3)-0.07*math.pow(distance,2)+0.8*distance-2.05)
+end
+
+function WorldToScreen(Position)
+    return Camera:WorldToViewportPoint(Position)
+end
+
+function IsOnScreen(part)
+    local vector, onscreen = WorldToScreen(part.Position)
+    return (vector.Z > 0)
+end
+
+function IsInFov(part)
+    if part then
+        if IsOnScreen(part) then
+            local pos = WorldToScreen(part.Position)
+            local dist = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(pos.X, pos.Y)).magnitude
+            if dist <= workspace.CurrentCamera.ViewportSize.X / (90 / Settings.FOV) and dist < math.huge then
+                return true
+            end
+        end
+    end
+end
+
+function MyTeam()
+    if "Bright blue" == tostring(game.Players.LocalPlayer.TeamColor) then return "Phantoms" else return "Ghosts" end
+end
+
+function GetClosestPlayer()
+    local TargetDistance = math.huge
+    local Target = nil
+    for i, v in pairs(game.Workspace.Players:GetDescendants()) do
+        if v.Name == "Player" and v:FindFirstChild('HumanoidRootPart') then
+            local TargetScreenPos = WorldToScreen(v.HumanoidRootPart.Position)
+            local mag = (Vector2.new(TargetScreenPos.X, TargetScreenPos.Y) - Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)).magnitude
+            if IsInFov(v:FindFirstChild('Head')) then
+                if Settings.TeamCheck then
+                    if v.Parent.Name ~= MyTeam() then
+                        if mag < TargetDistance then
+                            TargetDistance = mag
+                            Target = v
+                        end
+                    end
+                elseif mag < TargetDistance then
+                    TargetDistance = mag
+                    Target = v
+                end
+            end
+        end
+    end
+    return Target
+end
+
+function GetClosestPlayerW()
+    local TargetDistance = math.huge
+    local Target = nil
+    for i, v in pairs(game.Workspace.Players:GetDescendants()) do
+        if v.Name == "Player" and v:FindFirstChild('HumanoidRootPart') then
+            local TargetScreenPos = WorldToScreen(v.HumanoidRootPart.Position)
+            local mag = (Vector2.new(TargetScreenPos.X, TargetScreenPos.Y) - Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)).magnitude
+            if IsInFov(v:FindFirstChild("Head")) then
+                if Settings.TeamCheck then
+                    if v.Parent.Name ~= MyTeam() then
+                        if Settings.WallCheck then
+                            if isVisible(v) and mag < TargetDistance then
+                                TargetDistance = mag
+                                Target = v
+                            end
+                        end
+                    end
+                elseif Settings.WallCheck then
+                    if isVisible(v) and mag < TargetDistance then
+                        TargetDistance = mag
+                        Target = v
+                    end
+                end
+            end
+        end
+    end
+    return Target
+end
+
+UserInputService.InputBegan:Connect(function(Input)
+    if Input.UserInputType == Settings.TriggerKey and Settings.Enable then
+        IsKeyDown = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(Input)
+    if Input.UserInputType == Settings.TriggerKey then
+        IsKeyDown = false
+	end
+end)
+
+local target = nil
+local function aimbot()
+
+    if Settings.WallCheck == false then
+        target = GetClosestPlayer()
+    else
+        target = GetClosestPlayerW()
+    end
+
+    if target ~= nil then
+        local BulletPrediction = target.HumanoidRootPart.Velocity * (game:GetService('Players').LocalPlayer.Character.HumanoidRootPart.Position - target.HumanoidRootPart.Position).magnitude / 1200 / Settings.BP
+        local aimAt, visible = WorldToScreen(target.Head.Position + Vector3.new(0,Calculate((game:GetService('Players').LocalPlayer.Character.HumanoidRootPart.Position - target.HumanoidRootPart.Position).magnitude / Settings.BulletDrop) / Settings.BulletDrop,0) + BulletPrediction) --We get the target's head and add a new vector3 with y being BulletDrop, then we get that from vector3 to vector2, and we basically get the magnitude of target and localplayer and then use our sick math to get a nice curve.
+        mousemoverel((aimAt.X - UserInputService:GetMouseLocation().X) / Settings.Smooth, (aimAt.Y - UserInputService:GetMouseLocation().Y) / Settings.Smooth)
+    end
+end
+
+game:GetService("RunService").RenderStepped:connect(function()
+    if IsKeyDown then
+        aimbot()
+    end
+end)
+
+----------------------------------------------------------------------
+
+-- ESP Section
+
+Camera = game:GetService("Workspace").CurrentCamera
+RunService = game:GetService("RunService")
+camera = workspace.CurrentCamera
+Bottom = Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y)
+
+function GetPoint(vector3)
+    local vector, onScreen = camera:WorldToScreenPoint(vector3)
+    return {Vector2.new(vector.X,vector.Y),onScreen,vector.Z}
+end
+
+ColorOfESP = Color3.fromRGB(200,20,0)
+ESPEnabled = false
+DisplayEnabled = true
+TracersEnabled = true
+
+local function MakeESP(model)
+    local CurrentParent = model.Parent
+
+    local Box = Drawing.new("Square")
+    local Tracer = Drawing.new("Line")
+    local Display = Drawing.new("Text")
+    spawn(function()
+        while model.Parent == CurrentParent do
+            
+            local Distance = (Camera.CFrame.Position - model.HumanoidRootPart.Position).Magnitude
+            local GetP = GetPoint(model.Head.Position)
+            if ESPEnabled and GetP[2] and model.Parent.Name ~= game:GetService("Players").LocalPlayer.Team.Name then
+                Box.Color = ColorOfESP
+                Box.Thickness = 2
+                Box.Size = Vector2.new(25,50)
+                Box.Filled = false
+                Box.Position = GetP[1] - Vector2.new(15,-30)
+                Box.Visible = true
+            else
+                Box.Visible = false
+            end
+            if ESPEnabled and TracersEnabled and GetP[2] and model.Parent.Name ~= game:GetService("Players").LocalPlayer.Team.Name then
+                Tracer.Color = ColorOfESP
+                Tracer.From = Bottom
+                Tracer.To = GetP[1] + Vector2.new(0,50)
+                Tracer.Thickness = 1.5
+                Tracer.Visible = true
+            else
+                Tracer.Visible = false
+            end
+            if ESPEnabled and DisplayEnabled and GetP[2] and model.Parent.Name ~= game:GetService("Players").LocalPlayer.Team.Name then
+                Display.Visible = true
+                Display.Position = GetP[1] + Vector2.new(0,-15)
+                Display.Center = true
+                Display.Text = tostring(math.floor(Distance)).." studs"
+            else
+                Display.Visible = false
+            end
+            RunService.RenderStepped:Wait()
+        end
+
+        Box:Remove()
+        Tracer:Remove()
+        Display:Remove()
+
+    end)
+end
+
+for _, Player in next, game:GetService("Workspace").Players.Phantoms:GetChildren() do
+    MakeESP(Player)
+end
+
+for _, Player in next, game:GetService("Workspace").Players.Ghosts:GetChildren() do
+    MakeESP(Player)
+end
+
+game:GetService("Workspace").Players.Phantoms.ChildAdded:Connect(function(Player)
+    delay(0.5, function()
+        MakeESP(Player)
+    end)
+end)
+
+game:GetService("Workspace").Players.Ghosts.ChildAdded:Connect(function(Player)
+    delay(0.5, function()
+        MakeESP(Player)
+    end)
+end)
+
+ESPSection:Toggle("Enabed",false, function(t)
+    ESPEnabled = t
+end)
+
+ESPSection:Toggle("Display Distance",true, function(t)
+    DisplayEnabled = t
+end)
+
+ESPSection:Toggle("Tracers",false, function(t)
+    TracersEnabled = t
+end)
+
+---------------------------------------------------------------------------------------------------
+
+-- Other Func
+-- Add UI
+local Settings = win:Tab("Settings")
+
+Settings:Label("UI Toggle Key:  Right-Ctrl")
+
+Settings:Button("Copy Discord Invite", function()
+    setclipboard("https://discord.gg/psu")
+    UILib:Notification("Notification", "Copied!", "Okay")
+end)
+
+if RecievedData.Body == nil and PredictedData ~= RecievedData.Body then while true do end end
