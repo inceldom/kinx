@@ -1,0 +1,29 @@
+nouni=false
+local function lo(l)
+loadstring(game:HttpGet(l,true))()
+nouni=true
+end
+if game.PlaceId==286090429 then
+lo("https://raw.githubusercontent.com/inceldom/kinx/main/arsenal")
+end
+if game.PlaceId==292439477 then
+lo("https://raw.githubusercontent.com/inceldom/kinx/main/pf")
+end
+if game.PlaceId==1962086868 then
+lo("https://raw.githubusercontent.com/inceldom/kinx/main/toh")
+end
+if game.PlaceId==155615604 then
+lo("https://raw.githubusercontent.com/inceldom/kinx/main/pl")
+end
+if game.PlaceId==1537690962 then
+lo("https://raw.githubusercontent.com/inceldom/kinx/main/bss")
+end
+if game.PlaceId==3101667897 then
+lo("https://raw.githubusercontent.com/inceldom/kinx/main/los")
+end
+if game.PlaceId==142823291 then
+lo("https://raw.githubusercontent.com/inceldom/kinx/main/mm2")
+end
+if nouni==false then
+lo("https://raw.githubusercontent.com/inceldom/kinx/main/uni")
+end
