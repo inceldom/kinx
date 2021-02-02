@@ -381,5 +381,3 @@ Settings:Button("Copy Discord Invite", function()
     setclipboard("https://discord.gg/psu")
     UILib:Notification("Notification", "Copied!", "Okay")
 end)
-
-if RecievedData.Body == nil and PredictedData ~= RecievedData.Body then while true do end end
